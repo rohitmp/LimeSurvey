@@ -2387,6 +2387,28 @@ class remotecontrol_handle
 
         return base64_encode($sFileData);
     }
+    
+    /**
+     * RPC Routine to export the survey structure.
+     * Returns the requested survey structure as a json string
+     * 
+     * @param string $sSessionKey Auth credentials
+     * @param int $iSurveyID Id of the Survey
+     * @return array|SimpleXMLElement On failure array with error information. On success: survey structure as a SimpleXMLElement 
+     */
+    
+    public function export_survey_structure($sSessionKey, $iSurveyID ){
+        if (!$this->_checkSessionKey($sSessionKey)) return array('status' => 'Invalid session key');
+        if (!tableExists('{{survey_' . $iSurveyID . '}}')) return array('status' => 'No such Survey exists');
+        if (!hasSurveyPermission($iSurveyID, 'responses', 'export')) return array('status' => 'No permission');
+        Yii::app()->loadHelper('export');        
+        $surveyInXmlFormat = surveyGetXMLData($iSurveyID);        
+        $fileContents = str_replace(array("\n", "\r", "\t"), '', $surveyInXmlFormat);
+        $fileContentsTrimmed = trim(str_replace('"', "'", $fileContents));
+        $simpleXml = simplexml_load_string($fileContentsTrimmed,'SimpleXMLElement', LIBXML_NOCDATA);
+        //return the simplexml element, the LSjsonRPCServer is anyway going to convert it into json before returning.
+        return $simpleXml;
+    }
 
     /**
      * RPC Routine to export token response in a survey.
